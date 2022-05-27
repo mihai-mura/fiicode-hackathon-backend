@@ -1,5 +1,6 @@
 const ROLE = {
-	USER: 'user',
+	PARENT: 'parent',
+	CHILD: 'child',
 };
 
 export default ROLE;

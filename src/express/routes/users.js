@@ -11,7 +11,7 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
 	try {
 		const hashedPass = await bcrypt.hash(req.body.password, 10);
-		const user = await createUser(req.body.email, hashedPass, req.body.firstName, req.body.lastName, ROLE.USER);
+		const user = await createUser(req.body.email, hashedPass, req.body.firstName, req.body.lastName, ROLE.PARENT);
 		if (user === 11000) {
 			//* duplicate error
 			res.status(409).send('email already in use');
