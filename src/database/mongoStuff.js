@@ -1,5 +1,6 @@
 import UserModel from './models/UserModel.js';
 import bcrypt from 'bcrypt';
+import ChildModel from './models/ChildModel.js';
 
 export const createUser = async (email, password, firstName, lastName, role) => {
 	try {
@@ -60,4 +61,20 @@ export const deleteUser = async (_id) => {
 	const user = await UserModel.findByIdAndDelete(_id);
 	if (user) return 1;
 	else return 0;
+};
+
+export const checkIfUuidRegistered = async (uuid) => {
+	const user = await ChildModel.findOne({ device_uuid: uuid });
+	if (user) return true;
+	else return false;
+};
+
+export const createChild = async (uuid, name, parentId) => {
+	const child = await ChildModel.create({
+		device_uuid: uuid,
+		name: name,
+		parent: parentId,
+	});
+	await UserModel.findByIdAndUpdate(parentId, { $push: { children: uuid } });
+	return child;
 };
