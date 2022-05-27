@@ -72,9 +72,39 @@ export const checkIfUuidRegistered = async (uuid) => {
 export const createChild = async (uuid, name, parentId) => {
 	const child = await ChildModel.create({
 		device_uuid: uuid,
-		name: name,
+		name: name.charAt(0).toUpperCase() + name.slice(1),
 		parent: parentId,
 	});
-	await UserModel.findByIdAndUpdate(parentId, { $push: { children: uuid } });
+	await UserModel.findByIdAndUpdate(parentId, { $push: { children: child?._id } });
 	return child;
+};
+
+export const getChildByUuid = async (uuid) => {
+	const child = await ChildModel.findOne({ device_uuid: uuid });
+	return child;
+};
+
+export const getParentFromChildUuid = async (uuid) => {
+	const child = await ChildModel.findOne({ device_uuid: uuid });
+	const parent = await UserModel.findById(child?.parent);
+
+	return [parent._id.toString(), child._id.toString(), child.name];
+};
+
+export const getChildrenByParentId = async (parentId) => {
+	const children = await ChildModel.find({ parent: parentId });
+	return children;
+};
+
+export const deleteChild = async (childId, parentId) => {
+	const child = await ChildModel.findByIdAndDelete(childId);
+	if (child.parent === parentId) {
+		await ChildModel.findByIdAndDelete(childId);
+		await UserModel.findByIdAndUpdate(parentId, { $pull: { children: childId } });
+		return 1;
+	} else return 0;
+};
+
+export const updateChildLocation = async (childId, latitude, longitude) => {
+	await ChildModel.findByIdAndUpdate(childId, { location: { lat: latitude, lng: longitude } });
 };

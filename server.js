@@ -6,7 +6,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import userRouter from './src/express/routes/users.js';
 import { instrument } from '@socket.io/admin-ui';
-import { checkIfUuidRegistered, createChild } from './src/database/mongoStuff.js';
+import { checkIfUuidRegistered, createChild, getParentFromChildUuid, updateChildLocation } from './src/database/mongoStuff.js';
+import childrenRouter from './src/express/routes/children.js';
 
 dotenv.config();
 
@@ -37,8 +38,13 @@ app.use(express.json());
 
 //routes
 app.use('/users', userRouter);
+app.use('/children', childrenRouter);
 
 io.on('connection', (socket) => {
+	socket.on('parent-id', (id) => {
+		socket.join(id);
+	});
+
 	socket.on('uuid', async (uuid) => {
 		socket.join(uuid);
 		const dbResponse = await checkIfUuidRegistered(uuid);
@@ -47,7 +53,6 @@ io.on('connection', (socket) => {
 
 	socket.on('add-child', async (data) => {
 		try {
-			console.log(data);
 			const child = await createChild(data.childUuid, data.name, data.parent);
 			if (child) {
 				socket.to(data.childUuid).emit('uuidRegistered', true);
@@ -55,5 +60,16 @@ io.on('connection', (socket) => {
 		} catch (error) {
 			console.log(error);
 		}
+	});
+
+	socket.on('location', async (data) => {
+		const [parentId, childId, childName] = await getParentFromChildUuid(data.uuid);
+		await updateChildLocation(childId, data.latitude, data.longitude);
+		socket.to(parentId).emit('location', {
+			lat: data.latitude,
+			lng: data.longitude,
+			child: childId,
+			name: childName,
+		});
 	});
 });
