@@ -1,7 +1,15 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserById, getUserByEmail, updateUser } from '../../database/mongoStuff.js';
+import {
+	createUser,
+	getUserById,
+	getUserByEmail,
+	updateUser,
+	getParentsMembers,
+	deleteMember,
+	createMember,
+} from '../../database/mongoStuff.js';
 import { verifyToken } from '../middleware.js';
 import ROLE from '../roles.js';
 import { sendPassRecoverMail } from '../../mail/mail.js';
@@ -29,6 +37,7 @@ router.post('/register', async (req, res) => {
 					email: user.email,
 					firstName: user.first_name,
 					lastName: user.last_name,
+					parent: user.parent,
 					role: user.role,
 				},
 			});
@@ -57,6 +66,7 @@ router.post('/login', async (req, res) => {
 						email: user.email,
 						firstName: user.first_name,
 						lastName: user.last_name,
+						parent: user.parent,
 						role: user.role,
 					},
 				});
@@ -76,6 +86,7 @@ router.get('/', verifyToken, async (req, res) => {
 			email: user.email,
 			firstName: user.first_name,
 			lastName: user.last_name,
+			parent: user.parent,
 			role: user.role,
 		});
 	} catch (error) {
@@ -148,6 +159,65 @@ router.post('/restore-password', verifyToken, async (req, res) => {
 			default:
 				res.sendStatus(500);
 		}
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
+router.post('/member/register', async (req, res) => {
+	try {
+		const hashedPass = await bcrypt.hash(req.body.password, 10);
+		const user = await createMember(
+			req.body.email,
+			hashedPass,
+			req.body.firstName,
+			req.body.lastName,
+			ROLE.MEMBER,
+			req.body.parent
+		);
+		if (user === 11000) {
+			//* duplicate error
+			res.status(409).send('email already in use');
+		} else {
+			const token = jwt.sign(
+				{
+					_id: user._id,
+				},
+				process.env.JWT_SECRET
+			);
+			res.status(201).send({
+				token,
+				user: {
+					_id: user._id,
+					email: user.email,
+					firstName: user.first_name,
+					lastName: user.last_name,
+					role: user.role,
+				},
+			});
+		}
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
+router.get('/members', verifyToken, async (req, res) => {
+	try {
+		const members = await getParentsMembers(req._id);
+		res.send(members);
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
+router.delete('/members/:id', verifyToken, async (req, res) => {
+	try {
+		const dbResponse = await deleteMember(req.params.id, req._id);
+		if (dbResponse) res.sendStatus(200);
+		else res.sendStatus(404);
 	} catch (error) {
 		console.log(error);
 		res.sendStatus(500);

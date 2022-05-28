@@ -6,8 +6,16 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import userRouter from './src/express/routes/users.js';
 import { instrument } from '@socket.io/admin-ui';
-import { checkIfUuidRegistered, createChild, getParentFromChildUuid, updateChildLocation } from './src/database/mongoStuff.js';
+import {
+	checkIfUuidRegistered,
+	createChild,
+	getParentEmail,
+	getParentFromChildUuid,
+	getParentIdFromMemberId,
+	updateChildLocation,
+} from './src/database/mongoStuff.js';
 import childrenRouter from './src/express/routes/children.js';
+import { sendNotificationMail } from './src/mail/mail.js';
 
 dotenv.config();
 
@@ -45,6 +53,11 @@ io.on('connection', (socket) => {
 		socket.join(id);
 	});
 
+	socket.on('member-id', async (id) => {
+		const parentId = await getParentIdFromMemberId(id);
+		socket.join(parentId);
+	});
+
 	socket.on('uuid', async (uuid) => {
 		socket.join(uuid);
 		const dbResponse = await checkIfUuidRegistered(uuid);
@@ -68,6 +81,18 @@ io.on('connection', (socket) => {
 		socket.to(parentId).emit('location', {
 			lat: data.latitude,
 			lng: data.longitude,
+			child: childId,
+			name: childName,
+		});
+	});
+
+	socket.on('notification', async (data) => {
+		const [parentId, childId, childName] = await getParentFromChildUuid(data.uuid);
+		const email = await getParentEmail(parentId);
+		await sendNotificationMail(email, `${childName} ${data.message}`);
+
+		socket.to(parentId).emit('notification', {
+			message: data.message,
 			child: childId,
 			name: childName,
 		});

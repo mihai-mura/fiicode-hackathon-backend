@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
 		first_name: { type: String, required: true },
 		last_name: { type: String, required: true },
 		children: { type: [String], default: [] },
+		parent: { type: String, default: null },
 		role: { type: String, required: true }, //*  user
 	},
 	{

@@ -1,5 +1,11 @@
 import express from 'express';
-import { deleteChild, getChildByUuid, getChildrenByParentId } from '../../database/mongoStuff.js';
+import {
+	deleteChild,
+	getChildByUuid,
+	getChildrenByParentId,
+	getMembersChildren,
+	updateChild,
+} from '../../database/mongoStuff.js';
 import { verifyToken } from '../middleware.js';
 
 const router = express.Router();
@@ -7,6 +13,16 @@ const router = express.Router();
 router.get('/all', verifyToken, async (req, res) => {
 	try {
 		const children = await getChildrenByParentId(req._id);
+		res.send(children);
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
+router.get('/member/all', verifyToken, async (req, res) => {
+	try {
+		const children = await getMembersChildren(req._id);
 		res.send(children);
 	} catch (error) {
 		console.log(error);
@@ -36,6 +52,16 @@ router.delete('/:id', verifyToken, async (req, res) => {
 		} else {
 			res.sendStatus(403);
 		}
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
+router.put('/:id', verifyToken, async (req, res) => {
+	try {
+		await updateChild(req.params.id, req.body.name);
+		res.sendStatus(200);
 	} catch (error) {
 		console.log(error);
 		res.sendStatus(500);

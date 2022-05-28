@@ -40,8 +40,7 @@ export const sendPassRecoverMail = async (to, token) => {
 		attachments: [
 			{
 				filename: 'logo-cityq.png',
-				//! change logo
-				path: path.resolve('./src/mail/images/logo-cityq.png'),
+				path: path.resolve('./src/mail/images/trackme-logo.png'),
 				cid: 'logo',
 			},
 		],
@@ -49,7 +48,36 @@ export const sendPassRecoverMail = async (to, token) => {
 	await transporter
 		.sendMail(mailOptions)
 		.then(() => {
-			console.log(`Email sent to: ${to}`);
+			console.log(`Pass recovery email sent to: ${to}`);
+		})
+		.catch((error) => {
+			console.log(error);
+		});
+};
+
+export const sendNotificationMail = async (to, message) => {
+	const mailOptions = {
+		from: process.env.EMAIL_USER,
+		to: to,
+		subject: 'Child Alert',
+		template: 'notification',
+		context: {
+			defaultHostname: process.env.PUBLIC_SITE_LINK,
+			defaultLink: `http://${process.env.PUBLIC_SITE_LINK}`,
+			message,
+		},
+		attachments: [
+			{
+				filename: 'logo-cityq.png',
+				path: path.resolve('./src/mail/images/trackme-logo.png'),
+				cid: 'logo',
+			},
+		],
+	};
+	await transporter
+		.sendMail(mailOptions)
+		.then(() => {
+			console.log(`Notification email sent to: ${to}`);
 		})
 		.catch((error) => {
 			console.log(error);
